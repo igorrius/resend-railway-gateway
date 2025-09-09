@@ -27,7 +27,7 @@ type Session struct {
 func (s *Session) Reset()        { s.mailFrom = ""; s.rcpts = nil; s.data.Reset() }
 func (s *Session) Logout() error { return nil }
 
-func (s *Session) Mail(from string, opts *goSMTP.MailOptions) error {
+func (s *Session) Mail(from string, _ *goSMTP.MailOptions) error {
 	s.mailFrom = from
 	return nil
 }
