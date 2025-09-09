@@ -25,7 +25,7 @@ func Load() (Config, error) {
 	if key == "" {
 		return Config{}, fmt.Errorf("RESEND_API_KEY is required")
 	}
-	addr := getenv("SMTP_LISTEN_ADDR", ":2525")
+	addr := getenv("SMTP_LISTEN_ADDR", ":1025")
 	timeoutStr := getenv("SEND_TIMEOUT_SECONDS", "15")
 	tSec, err := strconv.Atoi(timeoutStr)
 	if err != nil || tSec <= 0 {
