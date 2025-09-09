@@ -58,5 +58,3 @@ docker build -t resend-railway-gateway .
 
 ## License
 MIT
-
-Internal SMTP server to Resend.com proxy
