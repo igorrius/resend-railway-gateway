@@ -1,7 +1,8 @@
 package main
 
 import (
-	"log"
+	"context"
+	"log/slog"
 	"os"
 	"time"
 
@@ -13,13 +14,26 @@ import (
 
 type stdLogger struct{}
 
-func (l stdLogger) Info(msg string, fields map[string]any)  { log.Printf("INFO %s %v", msg, fields) }
-func (l stdLogger) Error(msg string, fields map[string]any) { log.Printf("ERROR %s %v", msg, fields) }
+func (l stdLogger) Info(msg string, fields map[string]any) {
+	attrs := make([]slog.Attr, 0, len(fields))
+	for k, v := range fields {
+		attrs = append(attrs, slog.Any(k, v))
+	}
+	slog.Default().LogAttrs(context.Background(), slog.LevelInfo, msg, attrs...)
+}
+func (l stdLogger) Error(msg string, fields map[string]any) {
+	attrs := make([]slog.Attr, 0, len(fields))
+	for k, v := range fields {
+		attrs = append(attrs, slog.Any(k, v))
+	}
+	slog.Default().LogAttrs(context.Background(), slog.LevelError, msg, attrs...)
+}
 
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("config_load_failed", "error", err)
+		os.Exit(1)
 	}
 	// optional override for Railway dynamic ports
 	if v := os.Getenv("PORT"); v != "" {
@@ -29,9 +43,10 @@ func main() {
 	sender := resendclient.NewClient(cfg.ResendAPIKey)
 	svc := app.NewService(sender, stdLogger{}, cfg.SendTimeout)
 	server := smtpserver.NewServer(cfg.SMTPListerAddr, svc)
-	log.Printf("SMTP gateway listening on %s", cfg.SMTPListerAddr)
+	slog.Info("smtp_listen", "addr", cfg.SMTPListerAddr)
 	if err := server.ListenAndServe(); err != nil {
-		log.Fatal(err)
+		slog.Error("smtp_server_error", "error", err)
+		os.Exit(1)
 	}
 	_ = time.Now()
 }
