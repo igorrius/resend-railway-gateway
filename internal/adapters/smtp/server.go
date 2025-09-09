@@ -43,7 +43,7 @@ func (s *Session) Data(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	email := parseMIMEMessage(s.mailFrom, s.rcpts, s.data.Bytes())
+	email := ParseMIMEMessage(s.mailFrom, s.rcpts, s.data.Bytes())
 	return s.service.HandleEmail(email)
 }
 
@@ -63,11 +63,11 @@ func NewServer(addr string, service *app.Service) *goSMTP.Server {
 	return s
 }
 
-// parseMIMEMessage performs a lightweight parse of headers and common MIME structures.
-func parseMIMEMessage(from string, rcpts []string, raw []byte) domain.Email {
+// ParseMIMEMessage performs a lightweight parse of headers and common MIME structures.
+func ParseMIMEMessage(from string, rcpts []string, raw []byte) domain.Email {
 	headers := map[string]string{}
 	subject := ""
-	textBody := string(raw)
+	textBody := ""
 	htmlBody := ""
 	var cc []string
 	var bcc []string
@@ -99,36 +99,37 @@ func parseMIMEMessage(from string, rcpts []string, raw []byte) domain.Email {
 		if err == nil && strings.HasPrefix(mediatype, "multipart/") {
 			boundary := params["boundary"]
 			bodyStart := bytes.Index(raw, []byte("\r\n\r\n"))
+			if bodyStart < 0 {
+				bodyStart = bytes.Index(raw, []byte("\n\n"))
+			}
 			if bodyStart >= 0 {
-				mpr := multipart.NewReader(bytes.NewReader(raw[bodyStart+4:]), boundary)
-				for {
-					part, err := mpr.NextPart()
-					if err != nil {
-						break
-					}
-					var reader io.Reader = part
-					cte := strings.ToLower(part.Header.Get("Content-Transfer-Encoding"))
-					switch cte {
-					case "base64":
-						reader = base64.NewDecoder(base64.StdEncoding, part)
-					case "quoted-printable":
-						reader = quotedprintable.NewReader(part)
-					}
-					slurp, _ := io.ReadAll(reader)
-					disp := part.Header.Get("Content-Disposition")
-					pctype := part.Header.Get("Content-Type")
-					lowerDisp := strings.ToLower(disp)
-					if strings.HasPrefix(lowerDisp, "attachment") || (strings.HasPrefix(lowerDisp, "inline") && part.FileName() != "") {
-						filename := part.FileName()
-						if filename == "" {
-							filename = "attachment"
-						}
-						attachments = append(attachments, domain.Attachment{Filename: filename, Content: slurp})
-					} else if strings.HasPrefix(strings.ToLower(pctype), "text/plain") {
-						textBody = string(slurp)
-					} else if strings.HasPrefix(strings.ToLower(pctype), "text/html") {
-						htmlBody = string(slurp)
-					}
+				bodyData := raw[bodyStart+2:]
+				textBody, htmlBody, attachments = parseMultipartBody(bodyData, boundary, attachments)
+			}
+		} else {
+			// Handle non-multipart emails
+			bodyStart := bytes.Index(raw, []byte("\r\n\r\n"))
+			if bodyStart < 0 {
+				bodyStart = bytes.Index(raw, []byte("\n\n"))
+			}
+			if bodyStart >= 0 {
+				bodyData := raw[bodyStart+2:]
+				cte := strings.ToLower(hdr.Get("Content-Transfer-Encoding"))
+				var reader io.Reader = bytes.NewReader(bodyData)
+				switch cte {
+				case "base64":
+					reader = base64.NewDecoder(base64.StdEncoding, bytes.NewReader(bodyData))
+				case "quoted-printable":
+					reader = quotedprintable.NewReader(bytes.NewReader(bodyData))
+				}
+				slurp, _ := io.ReadAll(reader)
+				if strings.HasPrefix(strings.ToLower(mediatype), "text/plain") {
+					textBody = string(slurp)
+				} else if strings.HasPrefix(strings.ToLower(mediatype), "text/html") {
+					htmlBody = string(slurp)
+				} else {
+					// Default to text if content type is not specified
+					textBody = string(slurp)
 				}
 			}
 		}
@@ -139,6 +140,66 @@ func parseMIMEMessage(from string, rcpts []string, raw []byte) domain.Email {
 	email.ReplyTo = replyTo
 	email.Attachments = attachments
 	return email
+}
+
+// parseMultipartBody recursively parses multipart content, handling nested multipart structures
+func parseMultipartBody(bodyData []byte, boundary string, attachments []domain.Attachment) (string, string, []domain.Attachment) {
+	textBody := ""
+	htmlBody := ""
+
+	mpr := multipart.NewReader(bytes.NewReader(bodyData), boundary)
+	for {
+		part, err := mpr.NextPart()
+		if err != nil {
+			break
+		}
+
+		// Handle content transfer encoding
+		var reader io.Reader = part
+		cte := strings.ToLower(part.Header.Get("Content-Transfer-Encoding"))
+		switch cte {
+		case "base64":
+			reader = base64.NewDecoder(base64.StdEncoding, part)
+		case "quoted-printable":
+			reader = quotedprintable.NewReader(part)
+		}
+
+		// Read the part content
+		slurp, _ := io.ReadAll(reader)
+		disp := part.Header.Get("Content-Disposition")
+		pctype := part.Header.Get("Content-Type")
+		lowerDisp := strings.ToLower(disp)
+
+		// Check if this is an attachment
+		if strings.HasPrefix(lowerDisp, "attachment") || (strings.HasPrefix(lowerDisp, "inline") && part.FileName() != "") {
+			filename := part.FileName()
+			if filename == "" {
+				filename = "attachment"
+			}
+			attachments = append(attachments, domain.Attachment{Filename: filename, Content: slurp})
+		} else {
+			// Parse content type to determine if this is text/plain, text/html, or nested multipart
+			mediatype, params, err := mime.ParseMediaType(pctype)
+			if err == nil && strings.HasPrefix(mediatype, "multipart/") {
+				// This is a nested multipart, recurse
+				nestedBoundary := params["boundary"]
+				var nestedText, nestedHtml string
+				nestedText, nestedHtml, attachments = parseMultipartBody(slurp, nestedBoundary, attachments)
+				if textBody == "" {
+					textBody = nestedText
+				}
+				if htmlBody == "" {
+					htmlBody = nestedHtml
+				}
+			} else if strings.HasPrefix(strings.ToLower(pctype), "text/plain") {
+				textBody = string(slurp)
+			} else if strings.HasPrefix(strings.ToLower(pctype), "text/html") {
+				htmlBody = string(slurp)
+			}
+		}
+	}
+
+	return textBody, htmlBody, attachments
 }
 
 func splitAddrs(s string) []string {

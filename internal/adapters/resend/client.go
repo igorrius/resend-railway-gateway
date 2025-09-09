@@ -25,7 +25,7 @@ func (c *Client) Send(email domain.Email) error {
 	for _, t := range email.Tags {
 		tags = append(tags, resendgo.Tag{Name: t.Name, Value: t.Value})
 	}
-	_, err := c.client.Emails.Send(&resendgo.SendEmailRequest{
+	request := &resendgo.SendEmailRequest{
 		From:        email.From,
 		To:          email.To,
 		Cc:          email.Cc,
@@ -37,7 +37,8 @@ func (c *Client) Send(email domain.Email) error {
 		Attachments: attachments,
 		Tags:        tags,
 		Headers:     email.Headers,
-	})
+	}
+	_, err := c.client.Emails.Send(request)
 	return err
 }
 
