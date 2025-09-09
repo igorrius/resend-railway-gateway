@@ -2,6 +2,8 @@
 
 Small Go service that accepts SMTP messages and relays them to Resend via HTTPS API.
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/qbyFiP?referralCode=6mpzOK&utm_medium=integration&utm_source=template&utm_campaign=generic)
+
 ## Features
 - **DDD + SOLID**: clear domain, application, and adapter layers
 - **SMTP in, Resend out**: uses `emersion/go-smtp` and Resend REST API
