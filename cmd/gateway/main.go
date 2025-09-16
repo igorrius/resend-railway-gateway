@@ -15,8 +15,8 @@ import (
 )
 
 func main() {
-	// create root slog logger and set as default
-	root := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	// create root slog logger using environment-based configuration
+	root := logging.NewConfiguredLogger()
 	slog.SetDefault(root)
 
 	cfg, err := config.Load()
