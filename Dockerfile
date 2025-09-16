@@ -11,5 +11,3 @@ COPY --from=builder /out/app /app
 EXPOSE 2525
 USER nonroot:nonroot
 ENTRYPOINT ["/app"]
-
-
