@@ -55,6 +55,3 @@ docker build -t resend-railway-gateway .
 
 ### Exposed port
 - TCP: `${PORT}` (Railway will inject `PORT`)
-
-## License
-MIT
