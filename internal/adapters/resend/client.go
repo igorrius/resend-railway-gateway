@@ -5,14 +5,18 @@ import (
 	resendgo "github.com/resend/resend-go/v2"
 )
 
+// Client implements the Resend API email sender adapter.
+// It wraps the Resend Go SDK and adapts it to the domain OutboundEmailSender interface.
 type Client struct {
 	client *resendgo.Client
 }
 
+// NewClient creates a new Resend client with the given API key.
 func NewClient(apiKey string) *Client {
 	return &Client{client: resendgo.NewClient(apiKey)}
 }
 
+// Send converts the domain Email to Resend's format and sends it via the API.
 func (c *Client) Send(email domain.Email) error {
 	attachments := make([]*resendgo.Attachment, 0, len(email.Attachments))
 	for _, a := range email.Attachments {

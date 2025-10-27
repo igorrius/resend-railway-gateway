@@ -1,6 +1,6 @@
 module github.com/igorrius/resend-railway-gateway
 
-go 1.24
+go 1.25
 
 require (
 	github.com/emersion/go-smtp v0.24.0

@@ -16,7 +16,8 @@ import (
 	"github.com/igorrius/resend-railway-gateway/internal/domain"
 )
 
-// Session implements go-smtp's Session interface.
+// Session implements go-smtp's Session interface to handle SMTP protocol operations.
+// It collects email data during the SMTP conversation and sends it through the service.
 type Session struct {
 	service  *app.Service
 	mailFrom string
@@ -47,13 +48,16 @@ func (s *Session) Data(r io.Reader) error {
 	return s.service.HandleEmail(email)
 }
 
-// Backend implements go-smtp Backend.
+// Backend implements go-smtp Backend to provide SMTP server functionality.
 type Backend struct{ service *app.Service }
 
 func (b *Backend) NewSession(_ *goSMTP.Conn) (goSMTP.Session, error) {
 	return &Session{service: b.service}, nil
 }
 
+// NewServer creates and configures a new SMTP server.
+// - addr: Listen address (e.g., ":2525")
+// - service: Application service for handling emails
 func NewServer(addr string, service *app.Service) *goSMTP.Server {
 	backend := &Backend{service: service}
 	s := goSMTP.NewServer(backend)
@@ -64,6 +68,12 @@ func NewServer(addr string, service *app.Service) *goSMTP.Server {
 }
 
 // ParseMIMEMessage performs a lightweight parse of headers and common MIME structures.
+// It supports:
+// - Simple text/plain and text/html messages
+// - Multipart messages (alternative and mixed)
+// - Nested multipart messages
+// - Base64 and quoted-printable encoding
+// - Attachments (inline and regular)
 func ParseMIMEMessage(from string, rcpts []string, raw []byte) domain.Email {
 	headers := map[string]string{}
 	subject := ""
