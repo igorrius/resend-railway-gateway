@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// Config holds all configuration for the SMTP gateway service.
 type Config struct {
 	ResendAPIKey   string
 	SMTPListerAddr string
@@ -20,6 +21,8 @@ func getenv(key, def string) string {
 	return def
 }
 
+// Load reads configuration from environment variables and returns a Config struct.
+// Returns an error if RESEND_API_KEY is not set or if timeout configuration is invalid.
 func Load() (Config, error) {
 	key := os.Getenv("RESEND_API_KEY")
 	if key == "" {

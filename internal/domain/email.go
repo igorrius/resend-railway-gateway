@@ -6,6 +6,7 @@ import (
 )
 
 // Email represents a normalized email message in the domain layer.
+// It contains all the necessary fields for sending an email through the gateway.
 type Email struct {
 	From        string
 	To          []string
@@ -20,7 +21,8 @@ type Email struct {
 	Tags        []Tag
 }
 
-// Validate checks essential fields.
+// Validate checks that the email has all essential fields required for sending.
+// Returns an error if the 'From' field is empty or if there are no recipients.
 func (e Email) Validate() error {
 	if strings.TrimSpace(e.From) == "" {
 		return errors.New("from is required")
@@ -32,6 +34,8 @@ func (e Email) Validate() error {
 }
 
 // NewEmail constructs an Email ensuring defaults and immutability of maps.
+// It normalizes recipient addresses (trimming whitespace and filtering empty ones)
+// and performs validation before returning the email. Returns an error if validation fails.
 func NewEmail(from string, to []string, subject, text, html string, headers map[string]string) (Email, error) {
 	normalizedTo := make([]string, 0, len(to))
 	for _, r := range to {
@@ -55,13 +59,13 @@ func NewEmail(from string, to []string, subject, text, html string, headers map[
 	return e, e.Validate()
 }
 
-// Attachment represents a file attachment body.
+// Attachment represents a file attachment with its filename and content.
 type Attachment struct {
 	Filename string
 	Content  []byte
 }
 
-// Tag represents provider-specific metadata tags.
+// Tag represents provider-specific metadata tags for analytics or categorization.
 type Tag struct {
 	Name  string
 	Value string
