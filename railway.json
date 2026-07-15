@@ -7,11 +7,17 @@
     "numReplicas": 1,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3,
-    "healthcheckPath": "",
+    "healthcheckPath": "/health",
     "healthcheckTimeout": 100
   },
   "env": {
     "RESEND_API_KEY": {
+      "required": true
+    },
+    "SMTP_USER": {
+      "required": true
+    },
+    "SMTP_PASS": {
       "required": true
     }
   }
