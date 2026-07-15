@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -9,7 +10,9 @@ import (
 
 type benchSender struct{}
 
-func (benchSender) Send(_ domain.Email) error { return nil }
+func (benchSender) Send(_ context.Context, _ domain.Email) (domain.SendResult, error) {
+	return domain.SendResult{}, nil
+}
 
 type benchLogger struct{}
 

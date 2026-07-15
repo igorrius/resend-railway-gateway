@@ -1,6 +1,11 @@
 package resend
 
 import (
+	"context"
+	"errors"
+	"net/http"
+	"time"
+
 	"github.com/igorrius/resend-railway-gateway/internal/domain"
 	resendgo "github.com/resend/resend-go/v2"
 )
@@ -13,27 +18,36 @@ type Client struct {
 }
 
 // NewClient creates a new Resend client with the given API key.
-func NewClient(apiKey string, logger domain.MessageLogger) *Client {
-	return &Client{client: resendgo.NewClient(apiKey), logger: logger}
+//
+// Outbound requests go through a retrying HTTP transport that retries 429/5xx
+// responses and network errors up to maxRetries times with exponential backoff
+// and jitter, honoring Retry-After.
+func NewClient(apiKey string, maxRetries int, logger domain.MessageLogger) *Client {
+	httpClient := &http.Client{
+		// The overall deadline is enforced by the caller's context; keep a
+		// generous ceiling as a safety net.
+		Timeout:   5 * time.Minute,
+		Transport: newRetryTransport(http.DefaultTransport, maxRetries),
+	}
+	return &Client{
+		client: resendgo.NewCustomClient(httpClient, apiKey),
+		logger: logger,
+	}
 }
 
 // Send converts the domain Email to Resend's format and sends it via the API.
-func (c *Client) Send(email domain.Email) error {
-	attachmentMeta := make([]map[string]any, 0, len(email.Attachments))
-	for _, a := range email.Attachments {
-		attachmentMeta = append(attachmentMeta, map[string]any{
-			"filename":     a.Filename,
-			"content_type": a.ContentType,
-			"size":         len(a.Content),
-			"content_id":   a.ContentID,
-		})
-	}
+//
+// On failure it returns a *domain.SendError classifying the failure as transient
+// (retryable rate-limit / provider outage / timeout) or permanent (validation,
+// authentication), letting the SMTP layer choose the right response code.
+func (c *Client) Send(ctx context.Context, email domain.Email) (domain.SendResult, error) {
 	c.logger.Debug("resend_request_start", map[string]any{
-		"subject":     email.Subject,
-		"to":          email.To,
-		"text_body":   len(email.Text),
-		"html_body":   len(email.HTML),
-		"attachments": attachmentMeta,
+		"to_count":    len(email.To),
+		"cc_count":    len(email.Cc),
+		"bcc_count":   len(email.Bcc),
+		"text_size":   len(email.Text),
+		"html_size":   len(email.HTML),
+		"attachments": len(email.Attachments),
 	})
 
 	attachments := make([]*resendgo.Attachment, 0, len(email.Attachments))
@@ -62,13 +76,29 @@ func (c *Client) Send(email domain.Email) error {
 		Tags:        tags,
 		Headers:     email.Headers,
 	}
-	resp, err := c.client.Emails.Send(request)
-	if err == nil {
-		c.logger.Debug("resend_request_success", map[string]any{
-			"id": resp.Id,
-		})
+
+	resp, err := c.client.Emails.SendWithContext(ctx, request)
+	if err != nil {
+		return domain.SendResult{}, classifySendError(err)
 	}
-	return err
+
+	c.logger.Debug("resend_request_success", map[string]any{"id": resp.Id})
+	return domain.SendResult{ID: resp.Id}, nil
+}
+
+// classifySendError maps an error returned by the Resend SDK into a
+// *domain.SendError, marking transient conditions as retryable.
+func classifySendError(err error) *domain.SendError {
+	if te, ok := asTransient(err); ok {
+		return &domain.SendError{Transient: true, StatusCode: te.statusCode, Err: err}
+	}
+	// Context deadline/cancellation is a transient condition from the client's
+	// perspective — the message can be retried.
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		return &domain.SendError{Transient: true, Err: err}
+	}
+	// Everything else (validation, auth, bad request) is permanent.
+	return &domain.SendError{Transient: false, Err: err}
 }
 
 var _ domain.OutboundEmailSender = (*Client)(nil)
