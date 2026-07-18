@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2A3547"/>
+      <stop offset="1" stop-color="#141A24"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+  <!-- rails motif -->
+  <g stroke="#F0873C" stroke-width="10" opacity="0.28" stroke-linecap="round">
+    <line x1="128" y1="404" x2="384" y2="404"/>
+    <line x1="128" y1="440" x2="384" y2="440"/>
+    <g stroke-width="8">
+      <line x1="148" y1="396" x2="148" y2="448"/>
+      <line x1="188" y1="396" x2="188" y2="448"/>
+      <line x1="228" y1="396" x2="228" y2="448"/>
+      <line x1="268" y1="396" x2="268" y2="448"/>
+      <line x1="308" y1="396" x2="308" y2="448"/>
+      <line x1="348" y1="396" x2="348" y2="448"/>
+    </g>
+  </g>
+  <!-- R monogram -->
+  <g fill="none" stroke="#F0873C" stroke-width="40" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M190 140 L190 344"/>
+    <path d="M190 140 L280 140 Q344 140 344 200 Q344 258 280 258 L190 258"/>
+    <path d="M256 258 L344 344"/>
+  </g>
+  <!-- send-out spark -->
+  <g fill="#5AA9F0">
+    <circle cx="372" cy="168" r="12"/>
+    <circle cx="404" cy="150" r="8" opacity="0.7"/>
+  </g>
+</svg>
