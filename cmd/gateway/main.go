@@ -13,12 +13,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/igorrius/resend-railway-gateway/internal/adapters/health"
-	resendclient "github.com/igorrius/resend-railway-gateway/internal/adapters/resend"
-	smtpserver "github.com/igorrius/resend-railway-gateway/internal/adapters/smtp"
-	"github.com/igorrius/resend-railway-gateway/internal/app"
-	"github.com/igorrius/resend-railway-gateway/internal/config"
-	"github.com/igorrius/resend-railway-gateway/internal/logging"
+	"github.com/igorrius/unosend-railway-gateway/internal/adapters/health"
+	smtpserver "github.com/igorrius/unosend-railway-gateway/internal/adapters/smtp"
+	unosendclient "github.com/igorrius/unosend-railway-gateway/internal/adapters/unosend"
+	"github.com/igorrius/unosend-railway-gateway/internal/app"
+	"github.com/igorrius/unosend-railway-gateway/internal/config"
+	"github.com/igorrius/unosend-railway-gateway/internal/logging"
 )
 
 func main() {
@@ -45,7 +45,7 @@ func run() int {
 	}
 
 	logger := logging.New(root)
-	sender := resendclient.NewClient(cfg.ResendAPIKey, cfg.MaxRetries, logger)
+	sender := unosendclient.NewClient(cfg.UnosendAPIKey, cfg.UnosendAPIURL, cfg.MaxRetries, logger)
 	svc := app.NewService(sender, logger, cfg.SendTimeout)
 
 	smtpSrv := smtpserver.NewServer(cfg.SMTPListenAddr, svc, smtpserver.Options{
@@ -55,7 +55,7 @@ func run() int {
 		AllowedFromDomains: cfg.AllowedFromDomains,
 	})
 
-	ready := func() bool { return strings.TrimSpace(cfg.ResendAPIKey) != "" }
+	ready := func() bool { return strings.TrimSpace(cfg.UnosendAPIKey) != "" }
 	healthSrv := health.NewServer(cfg.HealthAddr, ready)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

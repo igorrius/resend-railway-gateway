@@ -14,8 +14,8 @@ import (
 
 	"github.com/emersion/go-sasl"
 	goSMTP "github.com/emersion/go-smtp"
-	"github.com/igorrius/resend-railway-gateway/internal/app"
-	"github.com/igorrius/resend-railway-gateway/internal/domain"
+	"github.com/igorrius/unosend-railway-gateway/internal/app"
+	"github.com/igorrius/unosend-railway-gateway/internal/domain"
 )
 
 // Options configures the SMTP listener's access controls.

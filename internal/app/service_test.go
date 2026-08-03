@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/igorrius/resend-railway-gateway/internal/domain"
+	"github.com/igorrius/unosend-railway-gateway/internal/domain"
 )
 
 type fakeSender struct {
@@ -88,8 +88,8 @@ func TestHandleEmail_LogsDomainsNotFullRecipients(t *testing.T) {
 	if len(doms) != 1 || doms[0] != "acme.test" {
 		t.Errorf("to_domains = %v, want [acme.test]", doms)
 	}
-	if log.fields["resend_id"] != "rid" {
-		t.Errorf("resend_id = %v, want rid", log.fields["resend_id"])
+	if log.fields["provider_id"] != "rid" {
+		t.Errorf("provider_id = %v, want rid", log.fields["provider_id"])
 	}
 	if log.fields["outcome"] != "ok" {
 		t.Errorf("outcome = %v, want ok", log.fields["outcome"])

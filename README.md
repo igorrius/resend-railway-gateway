@@ -1,19 +1,19 @@
-# Resend Railway SMTP Gateway
+# Unosend Railway SMTP Gateway
 
-A production-ready Go service that accepts SMTP messages and relays them to Resend via HTTPS API. Built with clean architecture principles (DDD + SOLID) for maintainability and scalability.
+A production-ready Go service that accepts SMTP messages and relays them to Unosend via HTTPS API. Built with clean architecture principles (DDD + SOLID) for maintainability and scalability.
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/qbyFiP?referralCode=6mpzOK&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
 ## Features
 - **DDD + SOLID**: clear domain, application, and adapter layers
-- **SMTP in, Resend out**: uses `emersion/go-smtp` and Resend REST API
+- **SMTP in, Unosend out**: uses `emersion/go-smtp` and Unosend REST API
 - **Advanced MIME parsing**: supports multipart messages, HTML/text bodies, attachments
 - **HTTP health endpoint**: `GET /health` on a second port for Railway healthchecks
 - **Closed by default**: SMTP AUTH (PLAIN) required; optional sender-domain allowlist
-- **Resilient delivery**: retries Resend `429`/`5xx` with exponential backoff + jitter, honoring `Retry-After`
+- **Resilient delivery**: retries Unosend `429`/`5xx` with exponential backoff + jitter, honoring `Retry-After`
 - **Correct SMTP semantics**: transient upstream failures → SMTP `4xx` (client retries), permanent → `5xx`
 - **Graceful shutdown**: concurrent SMTP + HTTP listeners drained on `SIGTERM`
-- **Structured logging**: JSON in production; logs message-id, from, recipient *domains*, Resend id, latency, outcome — never the body or full recipient addresses
+- **Structured logging**: JSON in production; logs message-id, from, recipient *domains*, Unosend id, latency, outcome — never the body or full recipient addresses
 - **Config via ENV**: fail-fast validation at startup (no panics)
 - **Tests and Benchmarks**: unit tests and micro-benchmark for the send path
 - **Docker & Railway**: ready-to-deploy container and `railway.json`
@@ -29,7 +29,7 @@ A production-ready Go service that accepts SMTP messages and relays them to Rese
 
 ## Quick start
 ```bash
-export RESEND_API_KEY=your_resend_key
+export UNOSEND_API_KEY=your_unosend_key
 export SMTP_USER=user
 export SMTP_PASS=pass
 export SMTP_LISTEN_ADDR=:2525
@@ -52,12 +52,13 @@ The service validates its configuration at startup and **fails fast** with a
 clear message and non-zero exit (never a panic) if something required is missing.
 
 ### Required Environment Variables
-- `RESEND_API_KEY` (required): API key for Resend.
+- `UNOSEND_API_KEY` (required): API key from the [Unosend dashboard](https://www.unosend.co).
 - `SMTP_USER` / `SMTP_PASS` (required when AUTH is enabled — the default): the
   credentials clients present via SMTP AUTH PLAIN. Startup fails if AUTH is
   required but these are unset.
 
 ### Optional Environment Variables
+- `UNOSEND_API_URL` (default `https://api.unosend.co/v1/emails`): outbound API endpoint. Override this for a self-hosted or compatible Unosend deployment.
 - `SMTP_LISTEN_ADDR` (default `:2525`): listen address for the SMTP server.
   - Example: `:2525`, `0.0.0.0:2525`, `localhost:2525`, or a bare port `2525`.
 - `HEALTH_ADDR` (default `:8080`): listen address for the HTTP health server.
@@ -70,7 +71,7 @@ clear message and non-zero exit (never a panic) if something required is missing
 - `SEND_TIMEOUT_SECONDS` (default `15`): overall timeout for a single delivery,
   including all retries.
 - `SEND_MAX_RETRIES` (default `3`): max retries (in addition to the first
-  attempt) for transient Resend failures (`429`, `5xx`, network/timeout).
+  attempt) for transient Unosend failures (`429`, `5xx`, network/timeout).
 - `SMTP_REQUIRE_AUTH` (default `true`): require SMTP AUTH before `MAIL FROM`.
   Set to `false` **only** when the listener is bound to a trusted private
   network (then `SMTP_USER`/`SMTP_PASS` are not required).
@@ -82,14 +83,14 @@ clear message and non-zero exit (never a panic) if something required is missing
 
 ### Health endpoint & smoke test
 `GET /health` returns `200 {"status":"ok"}` when the process is up and
-`RESEND_API_KEY` is present, otherwise `503 {"status":"unavailable"}`.
+`UNOSEND_API_KEY` is present, otherwise `503 {"status":"unavailable"}`.
 
 ```bash
 # From another host/container:
 curl -f http://<host>:8080/health
 
 # Locally, using the built-in subcommand (also used as the Docker HEALTHCHECK):
-./bin/resend-railway-gateway healthcheck   # exit 0 = healthy, non-zero = not
+./bin/unosend-railway-gateway healthcheck   # exit 0 = healthy, non-zero = not
 ```
 
 ## Project Structure
@@ -98,7 +99,7 @@ cmd/gateway               # main: concurrent SMTP + HTTP health, graceful shutdo
 internal/domain           # core model, ports, typed send errors
 internal/app              # orchestration service, structured logging
 internal/adapters/smtp    # SMTP server: AUTH, allowlist, MIME parsing
-internal/adapters/resend  # Resend client + retry/backoff transport
+internal/adapters/unosend  # Unosend client + retry/backoff transport
 internal/adapters/health  # HTTP /health server
 internal/config           # env config loader + startup validation
 internal/logging          # slog setup
@@ -108,19 +109,19 @@ internal/logging          # slog setup
 
 ### Prerequisites
 - Go 1.25 or later
-- A Resend API key ([get one here](https://resend.com))
+- A Unosend API key ([get one here](https://www.unosend.co))
 
 ### Quick Start
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/igorrius/resend-railway-gateway.git
-cd resend-railway-gateway
+git clone https://github.com/igorrius/unosend-railway-gateway.git
+cd unosend-railway-gateway
 ```
 
 2. **Set up environment**
 ```bash
-export RESEND_API_KEY=your_resend_key
+export UNOSEND_API_KEY=your_unosend_key
 export SMTP_LISTEN_ADDR=:2525
 ```
 
@@ -205,7 +206,7 @@ railway login
 railway init
 
 # Required variables
-railway variables set RESEND_API_KEY=your_key
+railway variables set UNOSEND_API_KEY=your_key
 railway variables set SMTP_USER=your_smtp_user
 railway variables set SMTP_PASS=your_strong_password
 
@@ -243,15 +244,15 @@ put it behind TLS/a tunnel and keep AUTH enabled. Only set
 
 **Build the image:**
 ```bash
-docker build -t resend-railway-gateway .
+docker build -t unosend-railway-gateway .
 ```
 
 **Run locally:**
 ```bash
 docker run -p 2525:2525 \
-  -e RESEND_API_KEY=your_key \
+  -e UNOSEND_API_KEY=your_key \
   -e SMTP_LISTEN_ADDR=:2525 \
-  resend-railway-gateway
+  unosend-railway-gateway
 ```
 
 **Production run:**
@@ -260,18 +261,19 @@ docker run -d \
   --name smtp-gateway \
   --restart unless-stopped \
   -p 2525:2525 \
-  -e RESEND_API_KEY=your_key \
-  resend-railway-gateway
+  -e UNOSEND_API_KEY=your_key \
+  unosend-railway-gateway
 ```
 
 ### Environment Variables for Railway
 
 **Required:**
-- `RESEND_API_KEY` - Your Resend API key
+- `UNOSEND_API_KEY` - Your Unosend API key
 - `SMTP_USER` / `SMTP_PASS` - SMTP AUTH credentials (required unless
   `SMTP_REQUIRE_AUTH=false`)
 
 **Optional:**
+- `UNOSEND_API_URL` - Unosend endpoint (default: `https://api.unosend.co/v1/emails`)
 - `SMTP_LISTEN_ADDR` - SMTP listen address (default: `:2525`)
 - `HEALTH_ADDR` - HTTP health address (default: `:8080`, overridden by `PORT`)
 - `SEND_TIMEOUT_SECONDS` - Overall send timeout incl. retries (default: `15`)
@@ -317,13 +319,13 @@ The service follows a clean architecture with clear separation of concerns:
 └────────────────┬────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────┐
-│        Resend Adapter                            │
-│  - Converts to Resend API                       │
+│        Unosend Adapter                            │
+│  - Converts to Unosend API                       │
 │  - Sends via HTTPS                              │
 └────────────────┬────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────┐
-│              Resend API                          │
+│              Unosend API                          │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -331,7 +333,7 @@ The service follows a clean architecture with clear separation of concerns:
 
 - **Domain Layer** (`internal/domain`): Core business entities and interfaces
 - **Application Layer** (`internal/app`): Orchestrates use cases
-- **Adapter Layer** (`internal/adapters`): External integrations (SMTP, Resend)
+- **Adapter Layer** (`internal/adapters`): External integrations (SMTP, Unosend)
 - **Config Layer** (`internal/config`): Environment-based configuration
 - **Logging Layer** (`internal/logging`): Structured logging
 
@@ -344,9 +346,9 @@ The service follows a clean architecture with clear separation of concerns:
    LOG_LEVEL=DEBUG make run
    ```
 
-2. **Verify Resend API key**: Ensure `RESEND_API_KEY` is set correctly
+2. **Verify Unosend API key**: Ensure `UNOSEND_API_KEY` is set correctly
    ```bash
-   echo $RESEND_API_KEY
+   echo $UNOSEND_API_KEY
    ```
 
 3. **Test SMTP connection**:
@@ -390,7 +392,7 @@ docker run -p 2525:2525 ...
 
 ## Reliability
 
-- Transient Resend failures (`429`, `5xx`, network/timeout) are retried up to
+- Transient Unosend failures (`429`, `5xx`, network/timeout) are retried up to
   `SEND_MAX_RETRIES` times with exponential backoff + full jitter, honoring the
   `Retry-After` header.
 - If retries are exhausted on a transient failure, the client receives an SMTP
@@ -401,7 +403,7 @@ docker run -p 2525:2525 ...
 
 - Handles multiple concurrent SMTP connections
 - Efficient MIME parsing without full message buffering
-- Configurable timeout for Resend API calls
+- Configurable timeout for Unosend API calls
 - Micro-benchmark: ~10k messages/second on modern hardware
 
 ## Contributing

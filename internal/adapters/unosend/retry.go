@@ -1,4 +1,4 @@
-package resend
+package unosend
 
 import (
 	"bytes"
@@ -13,9 +13,9 @@ import (
 	"time"
 )
 
-// transientError marks a Resend failure that persisted after all retries were
+// transientError marks a Unosend failure that persisted after all retries were
 // exhausted (rate limiting, provider 5xx, or repeated network errors). It is
-// returned by retryTransport so that the resend adapter can classify the send
+// returned by retryTransport so that the unosend adapter can classify the send
 // as transient and surface an SMTP 4xx to the client.
 type transientError struct {
 	statusCode int
@@ -25,19 +25,19 @@ type transientError struct {
 
 func (e *transientError) Error() string {
 	if e.statusCode > 0 {
-		return fmt.Sprintf("resend: transient failure after %d attempt(s): HTTP %d", e.attempts, e.statusCode)
+		return fmt.Sprintf("unosend: transient failure after %d attempt(s): HTTP %d", e.attempts, e.statusCode)
 	}
-	return fmt.Sprintf("resend: transient failure after %d attempt(s): %v", e.attempts, e.err)
+	return fmt.Sprintf("unosend: transient failure after %d attempt(s): %v", e.attempts, e.err)
 }
 
 func (e *transientError) Unwrap() error { return e.err }
 
-// retryTransport is an http.RoundTripper that retries idempotent-by-key Resend
+// retryTransport is an http.RoundTripper that retries idempotent-by-key Unosend
 // requests on 429 and 5xx responses (and network errors) using exponential
 // backoff with full jitter, honoring the Retry-After header when present.
 //
 // On success or a permanent (non-retryable) response it returns the response
-// untouched so the Resend SDK can decode it. When retries are exhausted on a
+// untouched so the Unosend SDK can decode it. When retries are exhausted on a
 // retryable condition it returns a *transientError.
 type retryTransport struct {
 	base       http.RoundTripper
@@ -70,7 +70,7 @@ func newRetryTransport(base http.RoundTripper, maxRetries int) *retryTransport {
 func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	ctx := req.Context()
 
-	// Buffer the request body once so every attempt can replay it. The Resend
+	// Buffer the request body once so every attempt can replay it. The Unosend
 	// SDK sets Body but not GetBody, so we must capture it here.
 	var body []byte
 	if req.Body != nil {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/igorrius/resend-railway-gateway/internal/domain"
+	"github.com/igorrius/unosend-railway-gateway/internal/domain"
 )
 
 // Service orchestrates handling incoming email messages and delegating to the email provider.
@@ -51,11 +51,11 @@ func (s *Service) HandleEmail(email domain.Email) error {
 	latency := time.Since(start)
 
 	fields := map[string]any{
-		"message_id": messageID(email),
-		"from":       email.From,
-		"to_domains": recipientDomains(email.To),
-		"resend_id":  res.ID,
-		"latency_ms": latency.Milliseconds(),
+		"message_id":  messageID(email),
+		"from":        email.From,
+		"to_domains":  recipientDomains(email.To),
+		"provider_id": res.ID,
+		"latency_ms":  latency.Milliseconds(),
 	}
 	if err != nil {
 		fields["error"] = err.Error()

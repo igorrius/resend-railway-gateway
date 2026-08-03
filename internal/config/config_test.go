@@ -9,7 +9,7 @@ import (
 func clearEnv(t *testing.T) {
 	t.Helper()
 	for _, k := range []string{
-		"RESEND_API_KEY", "SMTP_LISTEN_ADDR", "HEALTH_ADDR", "PORT",
+		"UNOSEND_API_KEY", "UNOSEND_API_URL", "SMTP_LISTEN_ADDR", "HEALTH_ADDR", "PORT",
 		"SEND_TIMEOUT_SECONDS", "SEND_MAX_RETRIES", "SMTP_REQUIRE_AUTH",
 		"SMTP_USER", "SMTP_PASS", "ALLOWED_FROM_DOMAINS",
 	} {
@@ -20,13 +20,13 @@ func clearEnv(t *testing.T) {
 func TestLoad_MissingAPIKey(t *testing.T) {
 	clearEnv(t)
 	if _, err := Load(); err == nil {
-		t.Fatal("expected error when RESEND_API_KEY is missing")
+		t.Fatal("expected error when UNOSEND_API_KEY is missing")
 	}
 }
 
 func TestLoad_Defaults(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("RESEND_API_KEY", "re_test")
+	t.Setenv("UNOSEND_API_KEY", "un_test")
 	// AUTH is required by default, so credentials are needed for a clean load.
 	t.Setenv("SMTP_USER", "user")
 	t.Setenv("SMTP_PASS", "pass")
@@ -34,6 +34,9 @@ func TestLoad_Defaults(t *testing.T) {
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.UnosendAPIURL != "https://api.unosend.co/v1/emails" {
+		t.Errorf("UnosendAPIURL default = %q", cfg.UnosendAPIURL)
 	}
 	if cfg.SMTPListenAddr != ":2525" {
 		t.Errorf("SMTPListenAddr default = %q, want :2525", cfg.SMTPListenAddr)
@@ -54,7 +57,7 @@ func TestLoad_Defaults(t *testing.T) {
 
 func TestLoad_RequireAuthWithoutCreds(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("RESEND_API_KEY", "re_test")
+	t.Setenv("UNOSEND_API_KEY", "un_test")
 	// No SMTP_USER / SMTP_PASS -> must fail fast.
 	if _, err := Load(); err == nil {
 		t.Fatal("expected error when AUTH required but credentials missing")
@@ -63,7 +66,7 @@ func TestLoad_RequireAuthWithoutCreds(t *testing.T) {
 
 func TestLoad_AuthDisabledAllowsNoCreds(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("RESEND_API_KEY", "re_test")
+	t.Setenv("UNOSEND_API_KEY", "un_test")
 	t.Setenv("SMTP_REQUIRE_AUTH", "false")
 
 	cfg, err := Load()
@@ -77,7 +80,7 @@ func TestLoad_AuthDisabledAllowsNoCreds(t *testing.T) {
 
 func TestLoad_PortOverridesHealthAddr(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("RESEND_API_KEY", "re_test")
+	t.Setenv("UNOSEND_API_KEY", "un_test")
 	t.Setenv("SMTP_REQUIRE_AUTH", "false")
 	t.Setenv("HEALTH_ADDR", ":8080")
 	t.Setenv("PORT", "9000")
@@ -97,7 +100,7 @@ func TestLoad_PortOverridesHealthAddr(t *testing.T) {
 
 func TestLoad_BarePortNormalized(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("RESEND_API_KEY", "re_test")
+	t.Setenv("UNOSEND_API_KEY", "un_test")
 	t.Setenv("SMTP_REQUIRE_AUTH", "false")
 	t.Setenv("SMTP_LISTEN_ADDR", "2626")
 
@@ -112,7 +115,7 @@ func TestLoad_BarePortNormalized(t *testing.T) {
 
 func TestLoad_AllowedFromDomains(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("RESEND_API_KEY", "re_test")
+	t.Setenv("UNOSEND_API_KEY", "un_test")
 	t.Setenv("SMTP_REQUIRE_AUTH", "false")
 	t.Setenv("ALLOWED_FROM_DOMAINS", " Example.com, @foo.org ,,bar.net")
 
@@ -133,7 +136,7 @@ func TestLoad_AllowedFromDomains(t *testing.T) {
 
 func TestLoad_MaxRetriesParsing(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("RESEND_API_KEY", "re_test")
+	t.Setenv("UNOSEND_API_KEY", "un_test")
 	t.Setenv("SMTP_REQUIRE_AUTH", "false")
 	t.Setenv("SEND_MAX_RETRIES", "5")
 

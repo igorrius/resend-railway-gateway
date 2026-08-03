@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/igorrius/resend-railway-gateway/internal/domain"
+	"github.com/igorrius/unosend-railway-gateway/internal/domain"
 )
 
 type benchSender struct{}

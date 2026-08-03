@@ -10,19 +10,21 @@ import (
 
 // Config holds all configuration for the SMTP gateway service.
 type Config struct {
-	// ResendAPIKey is the Resend API key used to authenticate outbound sends.
-	ResendAPIKey string
+	// UnosendAPIKey is the Unosend API key used to authenticate outbound sends.
+	UnosendAPIKey string
+	// UnosendAPIURL is the endpoint used for outbound email requests.
+	UnosendAPIURL string
 	// SMTPListenAddr is the address the SMTP listener binds to (default ":2525").
 	SMTPListenAddr string
 	// HealthAddr is the address the HTTP health server binds to (default ":8080").
 	// On Railway, the injected $PORT overrides this so the platform can healthcheck
 	// the service over HTTP.
 	HealthAddr string
-	// SendTimeout is the maximum duration to wait for a single Resend delivery
+	// SendTimeout is the maximum duration to wait for a single Unosend delivery
 	// (including retries).
 	SendTimeout time.Duration
 	// MaxRetries is the maximum number of retries (in addition to the first
-	// attempt) for transient Resend failures (429 / 5xx / network errors).
+	// attempt) for transient Unosend failures (429 / 5xx / network errors).
 	MaxRetries int
 
 	// RequireAuth enforces SMTP AUTH before MAIL FROM is accepted. Enabled by
@@ -104,12 +106,12 @@ func HealthAddrFromEnv() string {
 //
 // It fails fast (returns an error, never panics) when required configuration is
 // missing or inconsistent:
-//   - RESEND_API_KEY must be present and non-empty.
+//   - UNOSEND_API_KEY must be present and non-empty.
 //   - When SMTP AUTH is required (the default), SMTP_USER and SMTP_PASS must be set.
 func Load() (Config, error) {
-	key := strings.TrimSpace(os.Getenv("RESEND_API_KEY"))
+	key := strings.TrimSpace(os.Getenv("UNOSEND_API_KEY"))
 	if key == "" {
-		return Config{}, fmt.Errorf("RESEND_API_KEY is required")
+		return Config{}, fmt.Errorf("UNOSEND_API_KEY is required")
 	}
 
 	addr := normalizeAddr(getenv("SMTP_LISTEN_ADDR", ":2525"))
@@ -139,7 +141,8 @@ func Load() (Config, error) {
 	}
 
 	return Config{
-		ResendAPIKey:       key,
+		UnosendAPIKey:      key,
+		UnosendAPIURL:      strings.TrimRight(getenv("UNOSEND_API_URL", "https://api.unosend.co/v1/emails"), "/"),
 		SMTPListenAddr:     addr,
 		HealthAddr:         healthAddr,
 		SendTimeout:        time.Duration(tSec) * time.Second,

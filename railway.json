@@ -11,7 +11,7 @@
     "healthcheckTimeout": 100
   },
   "env": {
-    "RESEND_API_KEY": {
+    "UNOSEND_API_KEY": {
       "required": true
     },
     "SMTP_USER": {

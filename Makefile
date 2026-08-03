@@ -1,4 +1,4 @@
-BINARY := resend-railway-gateway
+BINARY := unosend-railway-gateway
 PKG := ./...
 
 .PHONY: all build test bench lint run clean

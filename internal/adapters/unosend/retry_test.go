@@ -1,4 +1,4 @@
-package resend
+package unosend
 
 import (
 	"context"
@@ -29,7 +29,7 @@ func makeResp(code int, header http.Header, body string) *http.Response {
 func newReq(t *testing.T, body string) *http.Request {
 	t.Helper()
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost,
-		"https://api.resend.com/emails", strings.NewReader(body))
+		"https://api.unosend.co/v1/emails", strings.NewReader(body))
 	if err != nil {
 		t.Fatal(err)
 	}
